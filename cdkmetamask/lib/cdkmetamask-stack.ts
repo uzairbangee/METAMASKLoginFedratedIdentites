@@ -6,6 +6,7 @@ import * as cognito from "@aws-cdk/aws-cognito";
 import * as apigw from "@aws-cdk/aws-apigateway";
 import * as iam from "@aws-cdk/aws-iam";
 import * as ddb from "@aws-cdk/aws-dynamodb";
+import * as appsync from '@aws-cdk/aws-appsync';
 
 export class CdkmetamaskStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -42,6 +43,7 @@ export class CdkmetamaskStack extends cdk.Stack {
             "execute-api:Invoke",
             "lambda:InvokeFunction",
             "cognito-identity:*",
+            "appsync:GraphQL"
           ],
           resources: ["*"],
       })
@@ -162,6 +164,50 @@ export class CdkmetamaskStack extends cdk.Stack {
 
     userTable.grantFullAccess(loginLambda)
     loginLambda.addEnvironment('USER_TABLE', userTable.tableName);
+
+    const gql_api = new appsync.GraphqlApi(this, 'Api', {
+      name: 'cdk-todos-appsync-api',
+      schema: appsync.Schema.fromAsset('graphql/schema.graphql'),
+      authorizationConfig: {
+        defaultAuthorization: {
+          authorizationType: appsync.AuthorizationType.IAM,
+        },
+      },
+      xrayEnabled: true,
+    });
+
+
+    const todosLambda = new lambda.Function(this, 'AppSyncNotesHandler', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'main.handler',
+      code: lambda.Code.fromAsset('lambda/todo'),
+      memorySize: 1024
+    });
+    const lambdaDs = gql_api.addLambdaDataSource('lambdaDatasource', todosLambda);
+
+    lambdaDs.createResolver({
+      typeName: "Query",
+      fieldName: "getTodos"
+    });
+
+    lambdaDs.createResolver({
+      typeName: "Mutation",
+      fieldName: "addTodo"
+    });
+
+    const todosTable = new ddb.Table(this, 'CDKTodosTable', {
+      partitionKey: {
+        name: 'id',
+        type: ddb.AttributeType.STRING,
+      },
+    });
+    todosTable.grantFullAccess(todosLambda)
+    todosLambda.addEnvironment('TODOS_TABLE', todosTable.tableName);
+
+    // Prints out the AppSync GraphQL endpoint to the terminal
+    new cdk.CfnOutput(this, "GraphQLAPIURL", {
+      value: gql_api.graphqlUrl
+    });
 
   }
 }

@@ -1,16 +1,43 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AwsContext } from '../context/AwsProvider';
 import { AuthContext } from '../context/AuthProvider';
+import {addTodo} from "../graphql/mutation";
+import { ApolloProvider } from 'react-apollo';
+import { Rehydrated } from 'aws-appsync-react';
 
 function Dashboard() {
-  const { awsClient } = React.useContext(AwsContext);
-  const [state, setState] = useState({ data: '' });
+  const { client } = React.useContext(AwsContext);
+  const [todo, setTodo] = useState("");
   const { authState, dispatch } = useContext(AuthContext);
+
+  console.log("client ", client);
 
   const logout = () => {
     dispatch({
         type: 'LOGOUT',
     });
+  }
+
+  const add = async () => {
+    if(client){
+      try {
+        const todoInput = {
+          id: todo,
+          title: todo,
+          done: false
+        }
+        const added = await client.mutate({
+          mutation: addTodo,
+          variables: {
+            todo: todoInput
+          },
+        });
+        setTodo("")
+        console.log("added ", added);
+      } catch (error) {
+        console.log("error ", error)
+      }
+    }
   }
 
 //   useEffect(() => {
@@ -35,6 +62,11 @@ function Dashboard() {
       <div className='content'>
         <h1>Dashboard</h1>
         <button onClick={logout}>logout</button>
+        <br/>
+        <br/>
+        <br/>
+        <input name="todo" value={todo} onChange={(e) => setTodo(e.target.value)}/>
+        <button onClick={add}>ADD</button>
       </div>
     </div>
   );

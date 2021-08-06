@@ -14,11 +14,17 @@
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
   },
   "dependencies": {
+    "@apollo/react-hooks": "^4.0.0",
     "@metamask/onboarding": "^1.0.1",
+    "apollo-client": "^2.6.10",
+    "aws-appsync": "^4.1.1",
+    "aws-appsync-react": "^4.0.7",
     "aws4fetch": "^1.0.13",
     "axios": "^0.21.1",
     "gatsby": "^3.10.1",
+    "graphql-tag": "^2.12.5",
     "react": "^17.0.1",
+    "react-apollo": "^3.1.5",
     "react-dom": "^17.0.1",
     "stream-browserify": "^3.0.0",
     "web3": "^1.4.0"

@@ -1,10 +1,11 @@
 import React, { useEffect, useContext } from 'react';
 import Web3 from 'web3';
 import axios from 'axios';
-import { AwsClient } from 'aws4fetch';
 import MetaMaskOnboarding from '@metamask/onboarding';
 import { AuthContext } from '../context/AuthProvider';
 import { AwsContext } from '../context/AwsProvider';
+import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync';
+import awsconfig from "../aws-exports";
 
 const web3 = new Web3(Web3.givenProvider);
 const forwarderOrigin = 'http://localhost:8000';
@@ -17,7 +18,7 @@ const isMetaMaskInstalled = () => {
 
 export const Login = () => {
   const { dispatch } = React.useContext(AuthContext);
-  const { awsClient, setAwsClient } = React.useContext(AwsContext);
+  const { setAwsClient } = React.useContext(AwsContext);
 
   const initialState = {
     isSubmitting: false,
@@ -118,14 +119,27 @@ export const Login = () => {
               expiration: data.Expiration,
             },
           });
-          const aws = new AwsClient({
-            accessKeyId: data.AccessKeyId,
-            secretAccessKey: data.SecretKey,
-            sessionToken: data.SessionToken,
-            region: 'us-east-1',
-            service: 'execute-api',
+          // const aws = new AwsClient({
+          //   accessKeyId: data.AccessKeyId,
+          //   secretAccessKey: data.SecretKey,
+          //   sessionToken: data.SessionToken,
+          //   region: 'us-east-1',
+          //   service: 'execute-api',
+          // });
+          const client = new AWSAppSyncClient({
+            url: awsconfig.aws_appsync_graphqlEndpoint,
+            region: awsconfig.aws_appsync_region,
+            auth: {
+              type: AUTH_TYPE.AWS_IAM,
+              credentials: () => ({
+                accessKeyId: data.AccessKeyId,
+                secretAccessKey: data.SecretKey,
+                sessionToken: data.SessionToken
+              }),
+            },
+            disableOffline: true
           });
-          setAwsClient(aws);
+          setAwsClient(client);
         } else {
           setData({
             isSubmitting: false,

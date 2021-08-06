@@ -4,13 +4,16 @@ import Dashboard from '../components/dashboard';
 import { AuthContext } from '../context/AuthProvider';
 import { AwsContext } from '../context/AwsProvider';
 import { AwsClient } from 'aws4fetch';
-
+import awsconfig from "../aws-exports";
+import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync';
+import { ApolloProvider } from 'react-apollo';
+// import { Rehydrated } from 'aws-appsync-react';
 export default function Home() {
 
   const { authState, dispatch } = useContext(AuthContext);
-  const { awsClient, setAwsClient } = useContext(AwsContext);
+  const { client , setAwsClient } = useContext(AwsContext);
 
-  console.log("authState", authState)
+  console.log("client", client)
 
   React.useEffect(() => {
     const address = JSON.parse(localStorage.getItem('address') || null);
@@ -34,14 +37,27 @@ export default function Home() {
             expiration,
           },
         });
-        const aws = new AwsClient({
-          accessKeyId,
-          secretAccessKey: secretKey,
-          sessionToken,
-          region: 'us-east-1',
-          service: 'execute-api',
+        // const aws = new AwsClient({
+        //   accessKeyId,
+        //   secretAccessKey: secretKey,
+        //   sessionToken,
+        //   region: 'us-east-1',
+        //   service: 'execute-api',
+        // });
+        const clients = new AWSAppSyncClient({
+          url: awsconfig.aws_appsync_graphqlEndpoint,
+          region: awsconfig.aws_appsync_region,
+          auth: {
+            type: AUTH_TYPE.AWS_IAM,
+            credentials: () => ({
+              accessKeyId,
+              secretAccessKey: secretKey,
+              sessionToken
+            }),
+          },
+          disableOffline: true
         });
-        setAwsClient(aws);
+        setAwsClient(clients);
       } else {
         dispatch({
           type: 'LOGOUT',
@@ -51,8 +67,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className='app-container'>
-      {!authState.isAuthenticated ? <Login /> : <Dashboard />}
-    </div>
+    <ApolloProvider client={client}>
+      {/* <Rehydrated> */}
+        <div className='app-container'>
+          {!authState.isAuthenticated ? <Login /> : <Dashboard />}
+        </div>
+      {/* </Rehydrated> */}
+    </ApolloProvider>
   )
 }
