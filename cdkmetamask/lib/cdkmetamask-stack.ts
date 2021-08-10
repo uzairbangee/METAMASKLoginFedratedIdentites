@@ -7,12 +7,14 @@ import * as apigw from "@aws-cdk/aws-apigateway";
 import * as iam from "@aws-cdk/aws-iam";
 import * as ddb from "@aws-cdk/aws-dynamodb";
 import * as appsync from '@aws-cdk/aws-appsync';
+import * as rds from '@aws-cdk/aws-rds';
 
 export class CdkmetamaskStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // The code that defines your stack goes here
+
 
     const identityPool = new cognito.CfnIdentityPool(this, "IdentityPool", {
       allowUnauthenticatedIdentities: false, // Don't allow unathenticated users

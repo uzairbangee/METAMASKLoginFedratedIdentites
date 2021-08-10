@@ -11,10 +11,22 @@ const web3 = new Web3(Web3.givenProvider);
 const forwarderOrigin = 'http://localhost:8000';
 const onboarding = new MetaMaskOnboarding({ forwarderOrigin });
 
+declare global {
+  interface Window {
+      ethereum: any;
+  }
+}
+
 const isMetaMaskInstalled = () => {
-  const { ethereum } = window;
+  const { ethereum }: any = window;
   return Boolean(ethereum && ethereum.isMetaMask);
 };
+
+interface initalDataProps {
+  isSubmitting: boolean,
+  errorMessage: string | null,
+  isMetamaskInstalled: boolean,
+}
 
 export const Login = () => {
   const { dispatch } = React.useContext(AuthContext);
@@ -26,7 +38,7 @@ export const Login = () => {
     isMetamaskInstalled: true,
   };
 
-  const [data, setData] = React.useState(initialState);
+  const [data, setData] = React.useState<initalDataProps>(initialState);
 
   useEffect(() => {
     checkMetaMaskClient();
@@ -58,7 +70,7 @@ export const Login = () => {
 
     try {
       if (checkMetaMaskClient()) {
-        const accounts = await window.ethereum.request({
+        const accounts = await window?.ethereum?.request({
           method: 'eth_requestAccounts',
         });
         const address = accounts[0];
@@ -67,8 +79,7 @@ export const Login = () => {
         } = await axios(
           `https://9d3y8d4bfc.execute-api.us-east-1.amazonaws.com/prod/getnonce?address=${address.toLowerCase()}`,
           {
-            method: 'GET',
-            validateStatus: false,
+            method: 'GET'
           }
         );
         console.log("nonce ", nonce)
@@ -89,8 +100,9 @@ export const Login = () => {
         }
 
         const signature = await web3.eth.personal.sign(
-          web3.utils.sha3(`Welcome message, nonce: ${nonce}`),
-          address
+          web3.utils.sha3(`Welcome message, nonce: ${nonce}`) || "",
+          address,
+          ""
         );
 
         console.log("signature ", signature)
@@ -107,46 +119,8 @@ export const Login = () => {
             },
           }
         );
-        if (data && data.AccessKeyId) {
-          dispatch({
-            type: 'LOGIN',
-            payload: {
-              isAuthenticated: true,
-              accessKeyId: data.AccessKeyId,
-              address,
-              sessionToken: data.SessionToken,
-              secretKey: data.SecretKey,
-              expiration: data.Expiration,
-            },
-          });
-          // const aws = new AwsClient({
-          //   accessKeyId: data.AccessKeyId,
-          //   secretAccessKey: data.SecretKey,
-          //   sessionToken: data.SessionToken,
-          //   region: 'us-east-1',
-          //   service: 'execute-api',
-          // });
-          const client = new AWSAppSyncClient({
-            url: awsconfig.aws_appsync_graphqlEndpoint,
-            region: awsconfig.aws_appsync_region,
-            auth: {
-              type: AUTH_TYPE.AWS_IAM,
-              credentials: () => ({
-                accessKeyId: data.AccessKeyId,
-                secretAccessKey: data.SecretKey,
-                sessionToken: data.SessionToken
-              }),
-            },
-            disableOffline: true
-          });
-          setAwsClient(client);
-        } else {
-          setData({
-            isSubmitting: false,
-            errorMessage: 'Login failed',
-            isMetamaskInstalled: true,
-          });
-        }
+
+        console.log("data", data);
       } else {
         setData({
           ...data,

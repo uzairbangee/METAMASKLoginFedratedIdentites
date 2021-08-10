@@ -1,0 +1,49 @@
+{
+  "vpc-provider:account=625562161580:filter.isDefault=false:filter.vpc-id=vpc-08441970b15922a35:region=us-east-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-08441970b15922a35",
+    "vpcCidrBlock": "10.0.0.0/16",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-0e628fdc356cf7bab",
+            "cidr": "10.0.2.0/24",
+            "availabilityZone": "us-east-1a",
+            "routeTableId": "rtb-06c046311dd6d6320"
+          },
+          {
+            "subnetId": "subnet-043b3d2531bf3f296",
+            "cidr": "10.0.3.0/24",
+            "availabilityZone": "us-east-1b",
+            "routeTableId": "rtb-0a64c26ef07290375"
+          }
+        ]
+      },
+      {
+        "name": "private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-0fb13968e0acc6430",
+            "cidr": "10.0.0.0/24",
+            "availabilityZone": "us-east-1a",
+            "routeTableId": "rtb-09ff6a0524c06b1e8"
+          },
+          {
+            "subnetId": "subnet-08f3168d8d08f1007",
+            "cidr": "10.0.1.0/24",
+            "availabilityZone": "us-east-1b",
+            "routeTableId": "rtb-066518f7b08aaa7fd"
+          }
+        ]
+      }
+    ]
+  },
+  "security-group:account=625562161580:region=us-east-1:securityGroupId=sg-0e518802143727640": {
+    "securityGroupId": "sg-0e518802143727640",
+    "allowAllOutbound": false
+  }
+}
