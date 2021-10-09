@@ -1,13 +1,17 @@
-import React, { useEffect, useContext } from 'react';
-import Web3 from 'web3';
+import React, { useEffect, useState } from 'react';
+// import Web3 from 'web3';
+import { useWeb3React } from '@web3-react/core';
+import { metaMask } from '../config/connector';
+// import { formatEther } from '@ethersproject/units';
+import { useEagerConnect, useInactiveListener } from '../hooks/connection';
 import axios from 'axios';
 import MetaMaskOnboarding from '@metamask/onboarding';
-import { AuthContext } from '../context/AuthProvider';
-import { AwsContext } from '../context/AwsProvider';
-import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync';
-import awsconfig from "../aws-exports";
+// import { AuthContext } from '../context/AuthProvider';
+// import { AwsContext } from '../context/AwsProvider';
+// import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync';
+// import awsconfig from "../aws-exports";
 
-const web3 = new Web3(Web3.givenProvider);
+// const web3 = new Web3 (Web3.givenProvider);
 const forwarderOrigin = 'http://localhost:8000';
 const onboarding = new MetaMaskOnboarding({ forwarderOrigin });
 
@@ -29,8 +33,34 @@ interface initalDataProps {
 }
 
 export const Login = () => {
-  const { dispatch } = React.useContext(AuthContext);
-  const { setAwsClient } = React.useContext(AwsContext);
+  // const { dispatch } = React.useContext(AuthContext);
+  // const { setAwsClient } = React.useContext(AwsContext);
+
+  const {
+    connector,
+    library,
+    account,
+    chainId,
+    activate,
+    deactivate,
+    active,
+    error,
+  } = useWeb3React();
+
+  console.log("account", account)
+
+  const [blockNumber, setBlockNumber] = useState<any>(undefined);
+  const [ethBalance, setEthBalance] = useState<any>();
+  const [activatingConnector, setActivatingConnector] = useState<any>();
+
+  let connected = connector === metaMask;
+  const disabled = !!activatingConnector || connected || !!error;
+
+  // handle logic to eagerly connect to the injected ethereum provider, if it exists and has granted access already
+  const triedEager = useEagerConnect();
+
+  // handle logic to connect in reaction to certain events on the injected ethereum provider, if it exists
+  useInactiveListener(!triedEager || !!activatingConnector);
 
   const initialState = {
     isSubmitting: false,
@@ -38,11 +68,7 @@ export const Login = () => {
     isMetamaskInstalled: true,
   };
 
-  const [data, setData] = React.useState<initalDataProps>(initialState);
-
-  useEffect(() => {
-    checkMetaMaskClient();
-  }, []);
+    const [data, setData] = React.useState<initalDataProps>(initialState);
 
   const installMetamask = () => {
     onboarding.startOnboarding();
@@ -60,8 +86,77 @@ export const Login = () => {
     return false;
   };
 
+  useEffect(() => {
+    checkMetaMaskClient();
+  }, []);
+
+  useEffect(() => {
+    if (activatingConnector && activatingConnector === connector) {
+      setActivatingConnector(undefined);
+    }
+  }, [activatingConnector, connector]);
+
+  useEffect(() => {
+    if (library) {
+      let stale = false;
+      library
+        .getBlockNumber()
+        .then(blockNumber => {
+          if (!stale) {
+            setBlockNumber(blockNumber);
+          }
+        })
+        .catch(() => {
+          if (!stale) {
+            setBlockNumber(null);
+          }
+        });
+
+      const updateBlockNumber = blockNumber => {
+        setBlockNumber(blockNumber);
+      };
+      library.on("block", updateBlockNumber);
+
+      return () => {
+        library.removeListener("block", updateBlockNumber);
+        stale = true;
+        setBlockNumber(undefined);
+      };
+    }
+  }, [library, chainId]);
+
+  useEffect(() => {
+    if (library && account) {
+      let stale = false;
+
+      library
+        .getBalance(account)
+        .then(balance => {
+          if (!stale) {
+            setEthBalance(balance);
+          }
+        })
+        .catch(() => {
+          if (!stale) {
+            setEthBalance(null);
+          }
+        });
+
+      return () => {
+        stale = true;
+        setEthBalance(undefined);
+      };
+    }
+  }, [library, account, chainId]);
+
+  // const onClickActivate = async () => {
+  //   activate(metaMask);
+  //   setActivatingConnector(metaMask);
+  // };
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
+    await activate(metaMask);
     setData({
       ...data,
       isSubmitting: true,
@@ -69,48 +164,56 @@ export const Login = () => {
     });
 
     try {
-      if (checkMetaMaskClient()) {
-        const accounts = await window?.ethereum?.request({
-          method: 'eth_requestAccounts',
-        });
-        const address = accounts[0];
-        let {
-          data: { nonce },
-        } = await axios(
-          `https://9d3y8d4bfc.execute-api.us-east-1.amazonaws.com/prod/getnonce?address=${address.toLowerCase()}`,
+      if (checkMetaMaskClient() && account) {
+        console.log("innn")
+        // const accounts = await window?.ethereum?.request({
+        //   method: 'eth_requestAccounts',
+        // });
+        const address = account;
+        let nonce = await axios(
+          `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/finduser?publicAddress=${address.toLowerCase()}`,
           {
             method: 'GET'
           }
         );
-        console.log("nonce ", nonce)
-        if (!nonce) {
+        console.log("nonce ", nonce.data)
+        if (!nonce.data) {
           const { data } = await axios.post(
-            `https://9d3y8d4bfc.execute-api.us-east-1.amazonaws.com/prod/signup`,
-            { address: address.toLowerCase() },
+            `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/signup`,
+            { publicAddress: address.toLowerCase() },
             {
               headers: {
                 'Content-Type': 'application/json',
               },
             }
           );
-          console.log("data ", data);
-          if (data && data.Attributes) {
-            nonce = data.Attributes.nonce;
+          console.log("dataSignup ", data);
+          if (data && data.nonce) {
+            nonce = data.nonce;
           }
         }
+        else{
+          nonce = nonce.data.nonce;
+        }
+          
+        // const signature1 = await web3.eth.personal.sign(
+        //   web3.utils.sha3(`Welcome message, nonce: ${nonce}`) || "",
+        //   address,
+        //   ""
+        // );
 
-        const signature = await web3.eth.personal.sign(
-          web3.utils.sha3(`Welcome message, nonce: ${nonce}`) || "",
-          address,
-          ""
-        );
+        // console.log("signature1 ", signature1)
+
+
+        const signature = await library.getSigner(address).signMessage(`My App Auth Service Signing nonce: ${nonce}`)
 
         console.log("signature ", signature)
 
+
         const { data } = await axios.post(
-          `https://9d3y8d4bfc.execute-api.us-east-1.amazonaws.com/prod/login`,
+          `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authenticate`,
           {
-            address,
+            publicAddress: address.toLowerCase(),
             signature,
           },
           {
@@ -119,8 +222,19 @@ export const Login = () => {
             },
           }
         );
-
         console.log("data", data);
+
+        const authUser = await axios.get(`https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authuser`,
+        {
+            headers: {
+                Authorization: `Bearer ${data}`,
+            },
+        }
+      );
+
+      console.log("authUser ", data);
+
+        setActivatingConnector(metaMask);
       } else {
         setData({
           ...data,
@@ -129,6 +243,8 @@ export const Login = () => {
         });
       }
     } catch (error) {
+
+      console.log("erorr", error)
       setData({
         ...data,
         isSubmitting: false,
@@ -141,6 +257,13 @@ export const Login = () => {
     <div className='login-container'>
       <div className='card'>
         <div className='container'>
+          {active ? "🟢" : error ? "🔴" : "🟠"}
+          {/* <button
+            onClick={(e) => {
+              handleFormSubmit(e);
+            }}>
+            Login with Metamask
+          </button> */}
           <form onSubmit={handleFormSubmit}>
             <h1>Login</h1>
             {data.errorMessage && (

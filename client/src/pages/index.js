@@ -11,68 +11,62 @@ import { ApolloProvider } from 'react-apollo';
 export default function Home() {
 
   const { authState, dispatch } = useContext(AuthContext);
-  const { client , setAwsClient } = useContext(AwsContext);
 
-  console.log("client", client)
+  // React.useEffect(() => {
+  //   const address = JSON.parse(localStorage.getItem('address') || null);
+  //   const sessionToken = JSON.parse(
+  //     localStorage.getItem('sessionToken') || null
+  //   );
+  //   const secretKey = JSON.parse(localStorage.getItem('secretKey') || null);
+  //   const accessKeyId = JSON.parse(localStorage.getItem('accessKeyId') || null);
+  //   const expiration = JSON.parse(localStorage.getItem('expiration') || null);
+  //   const today = new Date();
 
-  React.useEffect(() => {
-    const address = JSON.parse(localStorage.getItem('address') || null);
-    const sessionToken = JSON.parse(
-      localStorage.getItem('sessionToken') || null
-    );
-    const secretKey = JSON.parse(localStorage.getItem('secretKey') || null);
-    const accessKeyId = JSON.parse(localStorage.getItem('accessKeyId') || null);
-    const expiration = JSON.parse(localStorage.getItem('expiration') || null);
-    const today = new Date();
-
-    if (address && sessionToken && expiration) {
-      if (new Date(expiration) > today) {
-        dispatch({
-          type: 'LOGIN',
-          payload: {
-            address,
-            sessionToken,
-            secretKey,
-            accessKeyId,
-            expiration,
-          },
-        });
-        // const aws = new AwsClient({
-        //   accessKeyId,
-        //   secretAccessKey: secretKey,
-        //   sessionToken,
-        //   region: 'us-east-1',
-        //   service: 'execute-api',
-        // });
-        const clients = new AWSAppSyncClient({
-          url: awsconfig.aws_appsync_graphqlEndpoint,
-          region: awsconfig.aws_appsync_region,
-          auth: {
-            type: AUTH_TYPE.AWS_IAM,
-            credentials: () => ({
-              accessKeyId,
-              secretAccessKey: secretKey,
-              sessionToken
-            }),
-          },
-          disableOffline: true
-        });
-        setAwsClient(clients);
-      } else {
-        dispatch({
-          type: 'LOGOUT',
-        });
-      }
-    }
-  }, []);
+  //   if (address && sessionToken && expiration) {
+  //     if (new Date(expiration) > today) {
+  //       dispatch({
+  //         type: 'LOGIN',
+  //         payload: {
+  //           address,
+  //           sessionToken,
+  //           secretKey,
+  //           accessKeyId,
+  //           expiration,
+  //         },
+  //       });
+  //       // const aws = new AwsClient({
+  //       //   accessKeyId,
+  //       //   secretAccessKey: secretKey,
+  //       //   sessionToken,
+  //       //   region: 'us-east-1',
+  //       //   service: 'execute-api',
+  //       // });
+  //       const clients = new AWSAppSyncClient({
+  //         url: awsconfig.aws_appsync_graphqlEndpoint,
+  //         region: awsconfig.aws_appsync_region,
+  //         auth: {
+  //           type: AUTH_TYPE.AWS_IAM,
+  //           credentials: () => ({
+  //             accessKeyId,
+  //             secretAccessKey: secretKey,
+  //             sessionToken
+  //           }),
+  //         },
+  //         disableOffline: true
+  //       });
+  //       setAwsClient(clients);
+  //     } else {
+  //       dispatch({
+  //         type: 'LOGOUT',
+  //       });
+  //     }
+  //   }
+  // }, []);
 
   return (
-    <ApolloProvider client={client}>
-      {/* <Rehydrated> */}
+    
         <div className='app-container'>
           {!authState.isAuthenticated ? <Login /> : <Dashboard />}
         </div>
-      {/* </Rehydrated> */}
-    </ApolloProvider>
   )
 }

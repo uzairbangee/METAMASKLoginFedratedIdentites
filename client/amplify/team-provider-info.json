@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-appmetamask-dev-125126-authRole",
+      "UnauthRoleArn": "arn:aws:iam::625562161580:role/amplify-appmetamask-dev-125126-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::625562161580:role/amplify-appmetamask-dev-125126-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-appmetamask-dev-125126-deployment",
+      "UnauthRoleName": "amplify-appmetamask-dev-125126-unauthRole",
+      "StackName": "amplify-appmetamask-dev-125126",
+      "StackId": "arn:aws:cloudformation:us-east-1:625562161580:stack/amplify-appmetamask-dev-125126/c692a270-fe66-11eb-b3ac-12e26def3eab",
+      "AmplifyAppId": "d2xxwv8tblfgvw"
+    }
+  }
+}
