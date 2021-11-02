@@ -10,7 +10,7 @@ import { ApolloProvider } from 'react-apollo';
 // import { Rehydrated } from 'aws-appsync-react';
 export default function Home() {
 
-  const { authState, dispatch } = useContext(AuthContext);
+  // const { authState, dispatch } = useContext(AuthContext);
 
   // React.useEffect(() => {
   //   const address = JSON.parse(localStorage.getItem('address') || null);
@@ -66,7 +66,7 @@ export default function Home() {
   return (
     
         <div className='app-container'>
-          {!authState.isAuthenticated ? <Login /> : <Dashboard />}
+          <Login />
         </div>
   )
 }

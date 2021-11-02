@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-// import Web3 from 'web3';
 import { useWeb3React } from '@web3-react/core';
 import { metaMask } from '../config/connector';
 // import { formatEther } from '@ethersproject/units';
@@ -8,10 +7,11 @@ import axios from 'axios';
 import MetaMaskOnboarding from '@metamask/onboarding';
 // import { AuthContext } from '../context/AuthProvider';
 // import { AwsContext } from '../context/AwsProvider';
-// import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync';
 // import awsconfig from "../aws-exports";
+import { API } from "aws-amplify";
+import {findUser, signup, authenticate, authUser} from "../graphql/mutation";
+import { GRAPHQL_AUTH_MODE } from '@aws-amplify/api-graphql';
 
-// const web3 = new Web3 (Web3.givenProvider);
 const forwarderOrigin = 'http://localhost:8000';
 const onboarding = new MetaMaskOnboarding({ forwarderOrigin });
 
@@ -165,74 +165,101 @@ export const Login = () => {
 
     try {
       if (checkMetaMaskClient() && account) {
-        console.log("innn")
+        console.log("innn", findUser)
         // const accounts = await window?.ethereum?.request({
         //   method: 'eth_requestAccounts',
         // });
+        let nonce: string = ""
         const address = account;
-        let nonce = await axios(
-          `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/finduser?publicAddress=${address.toLowerCase()}`,
-          {
-            method: 'GET'
-          }
-        );
-        console.log("nonce ", nonce.data)
-        if (!nonce.data) {
-          const { data } = await axios.post(
-            `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/signup`,
-            { publicAddress: address.toLowerCase() },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-          console.log("dataSignup ", data);
-          if (data && data.nonce) {
-            nonce = data.nonce;
-          }
+        const find: any = await API.graphql({
+          query: findUser,
+          variables: {address},
+        })
+
+        if (!find?.data.findUser.nonce) {
+          const sign: any = await API.graphql({
+            query: signup,
+            variables: {address},
+          })
+          nonce = sign?.data.signup.nonce;
         }
         else{
-          nonce = nonce.data.nonce;
+          nonce = find?.data.findUser.nonce;
         }
-          
-        // const signature1 = await web3.eth.personal.sign(
-        //   web3.utils.sha3(`Welcome message, nonce: ${nonce}`) || "",
-        //   address,
-        //   ""
-        // );
-
-        // console.log("signature1 ", signature1)
-
 
         const signature = await library.getSigner(address).signMessage(`My App Auth Service Signing nonce: ${nonce}`)
 
         console.log("signature ", signature)
+        const login: any = await API.graphql({
+          query: authenticate,
+          variables: {address, signature},
+        })
+
+        console.log("login ", login.data.authenticate)
+
+        const auth: any = await API.graphql({
+          query: authUser,
+          authMode: GRAPHQL_AUTH_MODE.AWS_LAMBDA,
+          authToken: `Bearer ${login.data.authenticate}`
+        })
+
+        console.log("auth ", auth.data)
+
+      //     const { data } = await axios.post(
+      //       `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/signup`,
+      //       { publicAddress: address.toLowerCase() },
+      //       {
+      //         headers: {
+      //           'Content-Type': 'application/json',
+      //         },
+      //       }
+      //     );
+      //     console.log("dataSignup ", data);
+      //     if (data && data.nonce) {
+      //       nonce = data.nonce;
+      //     }
+      //   }
+      //   else{
+      //     nonce = nonce.data.nonce;
+      //   }
+          
+      //   // const signature1 = await web3.eth.personal.sign(
+      //   //   web3.utils.sha3(`Welcome message, nonce: ${nonce}`) || "",
+      //   //   address,
+      //   //   ""
+      //   // );
+
+      //   // console.log("signature1 ", signature1)
 
 
-        const { data } = await axios.post(
-          `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authenticate`,
-          {
-            publicAddress: address.toLowerCase(),
-            signature,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        console.log("data", data);
+      //   const signature = await library.getSigner(address).signMessage(`My App Auth Service Signing nonce: ${nonce}`)
 
-        const authUser = await axios.get(`https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authuser`,
-        {
-            headers: {
-                Authorization: `Bearer ${data}`,
-            },
-        }
-      );
+      //   console.log("signature ", signature)
 
-      console.log("authUser ", data);
+
+      //   const { data } = await axios.post(
+      //     `https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authenticate`,
+      //     {
+      //       publicAddress: address.toLowerCase(),
+      //       signature,
+      //     },
+      //     {
+      //       headers: {
+      //         'Content-Type': 'application/json',
+      //       },
+      //     }
+      //   );
+      //   console.log("data", data);
+
+      //   const authUser = await axios.get(`https://e0lf4f0407.execute-api.us-east-1.amazonaws.com/prod/authuser`,
+      //   {
+      //       headers: {
+      //           Authorization: `Bearer ${data}`,
+      //       },
+      //   }
+      // );
+
+      // console.log("authUser ", data);
 
         setActivatingConnector(metaMask);
       } else {
@@ -248,7 +275,6 @@ export const Login = () => {
       setData({
         ...data,
         isSubmitting: false,
-        errorMessage: error.message || error.statusText,
       });
     }
   };
